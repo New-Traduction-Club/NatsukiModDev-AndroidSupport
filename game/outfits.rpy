@@ -133,7 +133,7 @@ init -1 python in jn_outfits:
                 dictionary representation of the wearable object
             """
             return {
-                "unlocked": self.unlocked
+                "unlocked": bool(self.__dict__["unlocked"])
             }
 
         def unlock(self):
@@ -163,7 +163,8 @@ init -1 python in jn_outfits:
             """
             Saves the persistable data for this wearable to the persistent.
             """
-            store.persistent.jn_wearable_list[self.reference_name] = self.asDict()
+            save_data = { "unlocked": bool(self.__dict__["unlocked"]) }
+            store.persistent.jn_wearable_list[self.reference_name] = save_data
 
         def __filterWearable(
             self,
@@ -396,7 +397,7 @@ init -1 python in jn_outfits:
                 dictionary representation of the outfit object
             """
             return {
-                "unlocked": self.unlocked
+                "unlocked": bool(self.__dict__["unlocked"])
             }
 
         def unlock(self):
@@ -485,7 +486,8 @@ init -1 python in jn_outfits:
             """
             Saves the persistable data for this outfit to the persistent.
             """
-            store.persistent.jn_outfit_list[self.reference_name] = self.asDict()
+            save_data = { "unlocked": bool(self.__dict__["unlocked"]) }
+            store.persistent.jn_outfit_list[self.reference_name] = save_data
 
         def __deleteSave(self):
             """

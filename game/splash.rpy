@@ -9,6 +9,12 @@ init -100 python:
             #If one is missing, throw an error and close
             renpy.error("DDLC archive files not found in /game folder. Check installation and try again.")
 
+init -99 python:
+    # This flag must be reset at the start of every session
+    # If it's True from a previous quit, it will prevent the user from quitting again
+    if getattr(persistent, '_jn_quit_in_progress', False):
+        persistent._jn_quit_in_progress = False
+
 ## First, a disclaimer declaring this is a mod is shown, then there is a
 ## check for the original DDLC assets in the install folder. If those are
 ## not found, the player is directed to the developer's site to download.
@@ -222,20 +228,31 @@ label before_main_menu:
 
     # Prevent the player's menu hotkey from defaulting to Save/Load
     $ store._game_menu_screen  = "preferences"
-    
+
     return
 
 label quit:
-    python:
-        # Remove any consequences from not quitting properly
-        if not Natsuki.getForceQuitAttempt():
-            Natsuki.removeApology(jn_apologies.ApologyTypes.sudden_leave)
-            
-            if Natsuki.getQuitApology() == jn_apologies.ApologyTypes.sudden_leave:
-                Natsuki.clearQuitApology()
+    # This persistent flag ensures the save logic only runs ONCE during a quit attempt
+    # even though renpy.quit() might re-enter this label multiple times
+    if not getattr(persistent, '_jn_quit_in_progress', False):
+        $ persistent._jn_quit_in_progress = True
 
-        # Save game data
-        jn_utils.saveGame()
+        python:
+            if not Natsuki.getForceQuitAttempt():
+                Natsuki.removeApology(jn_apologies.ApologyTypes.sudden_leave)
+                if Natsuki.getQuitApology() == jn_apologies.ApologyTypes.sudden_leave:
+                    Natsuki.clearQuitApology()
 
-        # Finally quit
-        renpy.quit()
+            # Call the save game function once
+            jn_utils.saveGame()
+            renpy.save_persistent()
+
+        # Now, actually quit XD. This will likely re-call this label, but the flag will prevent re-entry
+        $ renpy.quit()
+
+        # This part is a fallback. If the user cancels the quit (e.g. the common thing when you exit without saying goodbye)
+        # renPy should give control back. We reset the flag here to allow quitting again later
+        $ persistent._jn_quit_in_progress = False
+
+    # If the label is re-entered, do nothing, allowing the original quit process to complete
+    return
