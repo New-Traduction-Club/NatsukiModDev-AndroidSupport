@@ -4,10 +4,11 @@
 ## If not, display an error message and quit.
 init -100 python:
     #Check for each archive needed
-    for archive in ['audio','images','scripts','fonts']:
-        if archive not in config.archives:
-            #If one is missing, throw an error and close
-            renpy.error("DDLC archive files not found in /game folder. Check installation and try again.")
+    if not renpy.android:
+        for archive in ['audio','images','scripts','fonts']:
+            if archive not in config.archives:
+                #If one is missing, throw an error and close
+                renpy.error("DDLC archive files not found in /game folder. Check installation and try again.")
 
 init -99 python:
     # This flag must be reset at the start of every session
