@@ -148,83 +148,20 @@ style categorized_menu_button_text_italic is categorized_menu_button_text:
     italic True
 
 screen categorized_menu(menu_items, category_pane_space, option_list_space, category_length):
-    at categorized_menu_slide_in_right
     style_prefix "categorized_menu"
 
-    #Just entered this menu so just need to list categories
     fixed:
-        anchor (0, 0)
-        pos (category_pane_space[0], category_pane_space[1])
-        xsize category_pane_space[2]
-        ysize category_pane_space[3]
+        at categorized_menu_slide_in_right
 
-        bar:
-            adjustment prev_adjustment
-            style "classroom_vscrollbar"
-            xalign -0.1
-
-        vbox:
-            ypos 0
-            yanchor 0
-
-            viewport:
-                #Apply the old adjustment to keep the style the same
-                yadjustment prev_adjustment
-                yfill False
-                #Allow mousewheel and arrow keys for navigation
-                mousewheel True
-                arrowkeys True
-                vbox:
-                    if category_length == 0:
-                        textbutton _("Nevermind."):
-                            action [
-                                Return(False),
-                                Function(prev_adjustment.change, 0),
-                                SetVariable("selected_category", None)
-                            ]
-                            hover_sound gui.hover_sound
-                            activate_sound gui.activate_sound
-
-                    else:
-                        python:
-                            import random
-
-                            go_back_text = "Go back"
-                            if random.randint(0, 999) == 1:
-                                go_back_text = "Go baka"
-
-                        textbutton _(go_back_text):
-                            style "categorized_menu_button"
-                            action [ Return(-1), Function(prev_adjustment.change, 0) ]
-                            hover_sound gui.hover_sound
-                            activate_sound gui.activate_sound
-
-                        null height 20
-
-                    for button_name in menu_items.keys():
-                        $ has_unseen = len(Topic.filter_topics(topic_list=menu_items.get(button_name), nat_says=False, is_seen=False)) > 0
-                        $ display_text = "{i}[button_name]{/i}" if has_unseen else button_name
-
-                        textbutton display_text:
-                            style "categorized_menu_button"
-                            #Set the selected category
-                            action SetVariable("selected_category", button_name)
-                            hover_sound gui.hover_sound
-                            activate_sound gui.activate_sound
-
-                            if has_unseen:
-                                idle_background Frame("mod_assets/buttons/choice_hover_blank_star.png", gui.frame_hover_borders, tile=gui.frame_tile)
-
-                        null height 5
-
-    #Safely wrap this check so this screen cannot crash
-    #If we have a selected category and need to display the options within it (if there are any)
-    if menu_items.get(selected_category):
+        #Just entered this menu so just need to list categories
         fixed:
-            area option_list_space
+            anchor (0, 0)
+            pos (category_pane_space[0], category_pane_space[1])
+            xsize category_pane_space[2]
+            ysize category_pane_space[3]
 
             bar:
-                adjustment main_adjustment
+                adjustment prev_adjustment
                 style "classroom_vscrollbar"
                 xalign -0.1
 
@@ -233,38 +170,103 @@ screen categorized_menu(menu_items, category_pane_space, option_list_space, cate
                 yanchor 0
 
                 viewport:
-                    yadjustment main_adjustment
+                    #Apply the old adjustment to keep the style the same
+                    yadjustment prev_adjustment
                     yfill False
+                    #Allow mousewheel and arrow keys for navigation
                     mousewheel True
                     arrowkeys True
-
                     vbox:
-                        textbutton _("Nevermind."):
-                            action [
-                                Return(False),
-                                Function(prev_adjustment.change, 0),
-                                SetVariable("selected_category", None)
-                            ]
-                            hover_sound gui.hover_sound
-                            activate_sound gui.activate_sound
-
-                        null height 20
-
-                        for _topic in menu_items.get(selected_category):
-                            $ display_text = _topic.prompt if (_topic.shown_count > 0 or _topic.nat_says) else "{i}[_topic.prompt]{/i}"
-
-                            #NOTE: This should be preprocessed such that Topics without prompts aren't passed into this menu
-                            textbutton display_text:
-                                style "categorized_menu_button"
-                                # Return the label so it can be called
-                                action [ Return(_topic.label), Function(prev_adjustment.change, 0), SetVariable("selected_category", None) ]
+                        if category_length == 0:
+                            textbutton _("Nevermind."):
+                                action [
+                                    Return(False),
+                                    Function(prev_adjustment.change, 0),
+                                    SetVariable("selected_category", None)
+                                ]
                                 hover_sound gui.hover_sound
                                 activate_sound gui.activate_sound
-                                
-                                if _topic.shown_count == 0 and not _topic.nat_says:
+
+                        else:
+                            python:
+                                import random
+
+                                go_back_text = "Go back"
+                                if random.randint(0, 999) == 1:
+                                    go_back_text = "Go baka"
+
+                            textbutton _(go_back_text):
+                                style "categorized_menu_button"
+                                action [ Return(-1), Function(prev_adjustment.change, 0) ]
+                                hover_sound gui.hover_sound
+                                activate_sound gui.activate_sound
+
+                            null height 20
+
+                        for button_name in menu_items.keys():
+                            $ has_unseen = len(Topic.filter_topics(topic_list=menu_items.get(button_name), nat_says=False, is_seen=False)) > 0
+                            $ display_text = "{i}[button_name]{/i}" if has_unseen else button_name
+
+                            textbutton display_text:
+                                style "categorized_menu_button"
+                                #Set the selected category
+                                action SetVariable("selected_category", button_name)
+                                hover_sound gui.hover_sound
+                                activate_sound gui.activate_sound
+
+                                if has_unseen:
                                     idle_background Frame("mod_assets/buttons/choice_hover_blank_star.png", gui.frame_hover_borders, tile=gui.frame_tile)
 
                             null height 5
+
+        #Safely wrap this check so this screen cannot crash
+        #If we have a selected category and need to display the options within it (if there are any)
+        if menu_items.get(selected_category):
+            fixed:
+                area option_list_space
+
+                bar:
+                    adjustment main_adjustment
+                    style "classroom_vscrollbar"
+                    xalign -0.1
+
+                vbox:
+                    ypos 0
+                    yanchor 0
+
+                    viewport:
+                        yadjustment main_adjustment
+                        yfill False
+                        mousewheel True
+                        arrowkeys True
+
+                        vbox:
+                            textbutton _("Nevermind."):
+                                action [
+                                    Return(False),
+                                    Function(prev_adjustment.change, 0),
+                                    SetVariable("selected_category", None)
+                                ]
+                                hover_sound gui.hover_sound
+                                activate_sound gui.activate_sound
+
+                            null height 20
+
+                            for _topic in menu_items.get(selected_category):
+                                $ display_text = _topic.prompt if (_topic.shown_count > 0 or _topic.nat_says) else "{i}[_topic.prompt]{/i}"
+
+                                #NOTE: This should be preprocessed such that Topics without prompts aren't passed into this menu
+                                textbutton display_text:
+                                    style "categorized_menu_button"
+                                    # Return the label so it can be called
+                                    action [ Return(_topic.label), Function(prev_adjustment.change, 0), SetVariable("selected_category", None) ]
+                                    hover_sound gui.hover_sound
+                                    activate_sound gui.activate_sound
+                                    
+                                    if _topic.shown_count == 0 and not _topic.nat_says:
+                                        idle_background Frame("mod_assets/buttons/choice_hover_blank_star.png", gui.frame_hover_borders, tile=gui.frame_tile)
+
+                                null height 5
 
 screen scrollable_choice_menu(items, last_item=None, option_width=560, icon_path=None, menu_caption=None):
     if icon_path and persistent._jn_display_option_icons:
