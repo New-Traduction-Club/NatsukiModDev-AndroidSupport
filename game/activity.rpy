@@ -14,11 +14,44 @@ init python in jn_activity:
     LAST_ACTIVITY = None
 
     if renpy.windows:
-        from plyer import notification
-        import pygetwindow
-        sys.path.append(renpy.config.gamedir + '\\python-packages\\')
-        import win32api
-        import win32gui
+        import ctypes
+        from ctypes import wintypes
+
+        # ctypes definitions
+        user32 = ctypes.windll.user32
+        dwmapi = ctypes.windll.dwmapi
+        
+        # Win32 functions
+        GetForegroundWindow = user32.GetForegroundWindow
+        GetWindowText = user32.GetWindowTextW
+        GetWindowTextLength = user32.GetWindowTextLengthW
+        
+        # More function definitions for flashing window
+        FlashWindowEx = user32.FlashWindowEx
+        
+        # For _getJNWindowHwnd
+        EnumWindows = user32.EnumWindows
+        WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+        # Structures for FlashWindowEx
+        class FLASHWINFO(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", wintypes.UINT),
+                ("hwnd", wintypes.HWND),
+                ("dwFlags", wintypes.DWORD),
+                ("uCount", wintypes.UINT),
+                ("dwTimeout", wintypes.DWORD)
+            ]
+
+        def _flash_window(hwnd, flags, count, timeout):
+            info = FLASHWINFO(
+                cbSize=ctypes.sizeof(FLASHWINFO),
+                hwnd=hwnd,
+                dwFlags=flags,
+                uCount=count,
+                dwTimeout=timeout
+            )
+            FlashWindowEx(ctypes.byref(info))
 
     elif renpy.linux:
         import os
@@ -36,16 +69,7 @@ init python in jn_activity:
     elif renpy.macintosh:
         ACTIVITY_SYSTEM_ENABLED = False
 
-    class JNWindowFoundException(Exception):
-        """
-        Custom exception; used to break out of the win32gui.EnumWindows method while still returning a value,
-        as only that and returning False are valid means of termination.
-        """
-        def __init__(self, hwnd):
-            self.hwnd = hwnd
 
-        def __str__(self):
-            return self.hwnd
 
     class JNActivities(Enum):
         unknown = 0
@@ -444,19 +468,22 @@ init python in jn_activity:
         OUT:
             - int representing the hwnd of the JN game window
         """
-        def checkJNWindow(hwnd, ctx):
-            """
-            Returns JNWindowFoundException containing the hwnd of the JN game window.
-            """
-            if win32gui.GetWindowText(hwnd) == store.config.window_title:
-                raise JNWindowFoundException(hwnd)
+        top_level_windows = []
+        def enum_window_callback(hwnd, lParam):
+            top_level_windows.append(hwnd)
+            return True
 
-        try:
-            # Iterate through all windows, comparing titles to find the JN game window
-            win32gui.EnumWindows(checkJNWindow, None)
+        callback = WNDENUMPROC(enum_window_callback)
+        EnumWindows(callback, 0)
 
-        except JNWindowFoundException as exception:
-            return exception.hwnd
+        for hwnd in top_level_windows:
+            length = GetWindowTextLength(hwnd)
+            if length > 0:
+                buff = ctypes.create_unicode_buffer(length + 1)
+                GetWindowText(hwnd, buff, length + 1)
+                if buff.value == store.config.window_title:
+                    return hwnd
+        return None
 
     def getJNWindowActive():
         """
@@ -480,8 +507,14 @@ init python in jn_activity:
                 store.jnPause(delay, hard=True)
 
             try:
-                if renpy.windows and pygetwindow.getActiveWindow():
-                    return pygetwindow.getActiveWindow().title
+                if renpy.windows:
+                    hwnd = GetForegroundWindow()
+                    if hwnd:
+                        length = GetWindowTextLength(hwnd)
+                        buff = ctypes.create_unicode_buffer(length + 1)
+                        GetWindowText(hwnd, buff, length + 1)
+                        return buff.value
+                    return ""
 
                 elif renpy.linux:
                     # This is incredibly messy
@@ -533,7 +566,9 @@ init python in jn_activity:
             - flash_frequency_milliseconds - The amount of time to wait between each flash, in milliseconds
         """
         if renpy.windows:
-            win32gui.FlashWindowEx(_getJNWindowHwnd(), 6, flash_count, flash_frequency_milliseconds)
+            hwnd = _getJNWindowHwnd()
+            if hwnd:
+                _flash_window(hwnd, 6, flash_count, flash_frequency_milliseconds)
 
     def notifyPopup(message):
         """
