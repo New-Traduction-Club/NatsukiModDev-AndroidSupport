@@ -573,7 +573,7 @@ init 1 python:
 
         #And finally update the attributes
         if exp_code not in _existing_attr_list:
-            _existing_attr_list.append(exp_code)
+            _existing_attr_list[exp_code] = True
 
     def _find_target_override(self):
         """
