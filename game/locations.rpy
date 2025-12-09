@@ -103,13 +103,6 @@ init -20 python:
             if id in store.jn_locations.LOCATION_MAP:
                 raise Exception("[ERROR]: A Location with id '{0}' already exists.".format(id))
 
-            if not os.path.isdir(renpy.config.gamedir + "/mod_assets/backgrounds/{0}".format(image_dir)):
-                raise Exception(
-                    "[ERROR]: Image dir '{0}' is not a directory.".format(
-                        os.path.join(renpy.config.gamedir, "mod_assets", "backgrounds", image_dir)
-                    )
-                )
-
             # Build the image FPs
             day_image_fp = "mod_assets/backgrounds/{0}/{1}".format(image_dir, id + "-day.png")
             night_image_fp = "mod_assets/backgrounds/{0}/{1}".format(image_dir, id + "-night.png")
